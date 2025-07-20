@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "/boncar-frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "/boncar-api/api/index.php",
+      "use": "vercel-php@0.6.0"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/boncar-api/api/index.php?path=$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/boncar-frontend/dist/index.html"
+    }
+  ]
+}

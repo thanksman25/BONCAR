@@ -1,10 +1,4 @@
-Nama web           : BONCAR (Carbon Calculator)
-Backend            : PHP (Laravel)
-Frontend           : Javascript (Vue.js)
-akun admin         : adminboncar@gmail.com
-password admin     : boncar4ariq
-
-Email yg dipake buat verifikasi : syakuraabdanby@gmail.com 
+mail yg dipake buat verifikasi : syakuraabdanby@gmail.com 
 sandi email aplikasi            : qpzl xsug iaqk hsyo
 
 

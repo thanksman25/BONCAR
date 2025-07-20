@@ -1,5 +1,3 @@
-// #### File: src/store/calculator.ts
-
 import { defineStore } from 'pinia';
 import api from '@/services/api';
 import axios from 'axios';
@@ -16,6 +14,7 @@ export interface AllometricEquation {
   name: string;
   equation_template: string;
   reference: string;
+  required_parameters?: ('circumference' | 'height' | 'wood_density')[];
 }
 
 export interface ProjectDetails {
@@ -38,24 +37,24 @@ export interface TreeData {
   allometric_equation_id: number;
   circumference: number;
   height?: number;
+  wood_density?: number; // <-- TAMBAHAN
 }
 
-// --- INTERFACE HASIL DIPERBARUI ---
 interface CalculationResults {
   project: any;
   trees: any[];
   total_biomass_ton: number;
-  total_carbon_ton: number; // Disamakan dengan backend
+  total_carbon_ton: number;
   biomass_per_ha_ton: number;
   carbon_per_ha_ton: number;
-  settings: { [key: string]: string }; // Menampung pengaturan dari admin
+  settings: { [key: string]: string };
 }
 
 interface CalculatorState {
   projectDetails: ProjectDetails | null;
   trees: TreeData[];
   availableEquations: AllometricEquation[];
-  results: CalculationResults | null; // <-- Menggunakan interface baru
+  results: CalculationResults | null;
   loading: boolean;
   error: string | null;
   provinces: Wilayah[];
@@ -139,6 +138,8 @@ export const useCalculatorStore = defineStore('calculator', {
         species_id: null,
         allometric_equation_id: this.projectDetails.default_equation_id,
         circumference: 0,
+        height: undefined,
+        wood_density: undefined,
       };
       this.trees.push(newTree);
     },
@@ -181,6 +182,7 @@ export const useCalculatorStore = defineStore('calculator', {
           parameters: {
             circumference: tree.circumference,
             height: tree.height,
+            wood_density: tree.wood_density,
           },
         })),
       };

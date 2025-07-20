@@ -9,8 +9,20 @@ const store = useCalculatorStore();
 
 const searchResults = ref<any[]>([]);
 const activeSearchIndex = ref<number | null>(null);
-
 let searchTimeout: any = null;
+
+// Helper untuk menemukan objek rumus yang dipilih berdasarkan ID
+const getSelectedEquation = (treeId: number) => {
+  const tree = store.trees.find(t => t.id === treeId);
+  if (!tree) return null;
+  return store.availableEquations.find(eq => eq.id === tree.allometric_equation_id);
+};
+
+// Helper untuk memeriksa apakah parameter dibutuhkan oleh rumus
+const isParameterRequired = (treeId: number, param: 'height' | 'wood_density') => {
+  const equation = getSelectedEquation(treeId);
+  return equation?.required_parameters?.includes(param);
+};
 
 const onSearchSpecies = (treeId: number, event: Event) => {
   const searchTerm = (event.target as HTMLInputElement).value;
@@ -41,15 +53,12 @@ const selectSpecies = async (treeId: number, species: any) => {
   const tree = store.trees.find(t => t.id === treeId);
   if (!tree) return;
 
-  // Perbarui search_term dengan nama yang dipilih agar jelas bagi pengguna
   tree.species_search_term = `${species.name} (${species.scientific_name})`;
   searchResults.value = [];
   activeSearchIndex.value = null;
 
-  // JIKA SPESIES BERASAL DARI iNATURALIST (belum ada di DB lokal)
   if (!species.is_local) {
     try {
-      // Kirim data spesies baru ke backend untuk disimpan
       const response = await api.post('/species/from-inaturalist', {
         name: species.name,
         scientific_name: species.scientific_name,
@@ -57,15 +66,13 @@ const selectSpecies = async (treeId: number, species: any) => {
         description: species.description,
         family: species.family
       });
-      // Gunakan ID dari spesies yang baru dibuat di backend
       tree.species_id = response.data.id;
     } catch (error) {
       console.error("Gagal menyimpan spesies baru:", error);
       alert('Gagal menyimpan spesies baru ke database. Silakan coba lagi.');
-      tree.species_search_term = ''; // Reset input
+      tree.species_search_term = '';
     }
   } else {
-    // Jika spesies sudah ada di DB lokal, langsung gunakan ID-nya
     tree.species_id = species.id;
   }
 };
@@ -103,41 +110,53 @@ const goBack = () => router.back();
              <button @click="store.removeTree(tree.id)" class="delete-button material-icons">delete</button>
            </div>
            
-           <div class="input-group">
-             <label>Nama Pohon (Opsional)</label>
-             <input type="text" v-model="tree.name" placeholder="Contoh: Pohon Jati di sudut">
-           </div>
-
-           <div class="input-group species-search-container">
-             <label>Spesies Pohon (untuk API)*</label>
-             <input 
-                type="text" 
-                v-model="tree.species_search_term"
-                @input="onSearchSpecies(tree.id, $event)"
-                placeholder="Ketik nama pohon (min. 3 huruf)"
-                autocomplete="off">
-             <div v-if="activeSearchIndex === tree.id && searchResults.length > 0" class="search-results">
-                <ul>
-                  <li v-for="species in searchResults" :key="species.id || species.inaturalist_id" @click="selectSpecies(tree.id, species)">
-                    {{ species.name }} <br>
-                    <em>{{ species.scientific_name }}</em>
-                  </li>
-                </ul>
+           <div class="input-grid">
+             <div class="input-group full-width">
+               <label>Nama Pohon (Opsional)</label>
+               <input type="text" v-model="tree.name" placeholder="Contoh: Pohon Jati di sudut">
              </div>
-           </div>
 
-           <div class="input-group">
-              <label>Pilih Persamaan Alometrik</label>
-              <select v-model.number="tree.allometric_equation_id">
-                <option v-for="eq in store.availableEquations" :key="eq.id" :value="eq.id">
-                  {{ eq.name }}
-                </option>
-              </select>
-           </div>
+             <div class="input-group full-width species-search-container">
+               <label>Spesies Pohon*</label>
+               <input 
+                  type="text" 
+                  v-model="tree.species_search_term"
+                  @input="onSearchSpecies(tree.id, $event)"
+                  placeholder="Ketik nama pohon (min. 3 huruf)"
+                  autocomplete="off">
+               <div v-if="activeSearchIndex === tree.id && searchResults.length > 0" class="search-results">
+                  <ul>
+                    <li v-for="species in searchResults" :key="species.id || species.inaturalist_id" @click="selectSpecies(tree.id, species)">
+                      {{ species.name }} <br>
+                      <em>{{ species.scientific_name }}</em>
+                    </li>
+                  </ul>
+               </div>
+             </div>
 
-           <div class="input-group">
-             <label>Keliling Pohon (cm)*</label>
-             <input type="number" v-model.number="tree.circumference" required>
+             <div class="input-group full-width">
+                <label>Pilih Persamaan Alometrik</label>
+                <select v-model.number="tree.allometric_equation_id">
+                  <option v-for="eq in store.availableEquations" :key="eq.id" :value="eq.id">
+                    {{ eq.name }}
+                  </option>
+                </select>
+             </div>
+
+             <div class="input-group">
+               <label>Keliling Pohon (cm)*</label>
+               <input type="number" v-model.number="tree.circumference" required>
+             </div>
+
+             <div v-if="isParameterRequired(tree.id, 'height')" class="input-group">
+               <label>Tinggi (m)*</label>
+               <input type="number" step="0.1" v-model.number="tree.height" placeholder="Contoh: 15.5" required>
+             </div>
+             
+             <div v-if="isParameterRequired(tree.id, 'wood_density')" class="input-group">
+               <label>Kerapatan Kayu (g/cm³)*</label>
+               <input type="number" step="0.01" v-model.number="tree.wood_density" placeholder="Contoh: 0.65" required>
+             </div>
            </div>
          </div>
        </div>
@@ -241,5 +260,13 @@ h3 { color: #333; margin: 0; }
 .search-results li em {
   font-size: 0.9em;
   color: #555;
+}
+.input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+}
+.full-width {
+  grid-column: 1 / -1;
 }
 </style>

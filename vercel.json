@@ -24,7 +24,7 @@
       "destination": "/boncar-api/api/index.php"
     },
     {
-      "source": "/(.*)", 
+      "source": "/(.*)",
       "destination": "/boncar-frontend/dist/index.html"
     }
   ]

@@ -16,7 +16,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/boncar-api/api/index.php?path=$1"
+      "destination": "/boncar-api/api/index.php"
     },
     {
       "source": "/(.*)",

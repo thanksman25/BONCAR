@@ -2,12 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "/boncar-frontend/package.json",
-      "use": "@vercel/static-build"
-    },
-    {
       "src": "/boncar-api/api/index.php",
       "use": "vercel-php@0.6.1"
+    },
+    {
+      "src": "/boncar-frontend/package.json",
+      "use": "@vercel/static-build"
     }
   ],
   "rewrites": [

@@ -1,22 +1,27 @@
 {
   "version": 2,
+  "functions": {
+    "boncar-api/api/index.php": {
+      "runtime": "vercel-php@0.6.1"
+    }
+  },
   "builds": [
-    {
-      "src": "boncar-api/api/index.php",
-      "use": "vercel-php@0.6.1"
-    },
     {
       "src": "boncar-frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist"
       }
+    },
+    {
+      "src": "boncar-api/api/index.php",
+      "use": "vercel-php@0.6.1"
     }
   ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/boncar-api/api/index.html"
+      "destination": "/boncar-api/api/index.php"
     },
     {
       "source": "/(.*)",

@@ -2,14 +2,16 @@
   "version": 2,
   "builds": [
     {
-      "src": "/boncar-frontend/package.json",
+      "src": "boncar-frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "installCommand": "cd boncar-frontend && npm install",
+        "buildCommand": "npm run build",
+        "outputDirectory": "dist"
       }
     },
     {
-      "src": "/boncar-api/api/index.php",
+      "src": "boncar-api/api/index.php",
       "use": "vercel-php@0.6.0"
     }
   ],

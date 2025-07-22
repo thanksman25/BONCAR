@@ -1,5 +1,8 @@
 <?php
 
+ini_set('display_errors', 1); // <--- TAMBAHKAN BARIS INI
+error_reporting(E_ALL);
+
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 

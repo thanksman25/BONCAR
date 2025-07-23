@@ -1,0 +1,30 @@
+# Salin semua kode ini ke dalam file .nginx/nginx.conf.erb yang baru kamu buat
+
+daemon off;
+pid /tmp/nginx.pid;
+error_log stderr;
+
+events { }
+
+http {
+    access_log /dev/stdout;
+    include mime.types;
+
+    server {
+        listen <%= ENV["PORT"] %>;
+        server_name _;
+        root /app/public; # <-- PENTING: Mengarahkan ke folder public
+        index index.php index.html;
+
+        location / {
+            try_files $uri $uri/ /index.php?$query_string; # <-- PENTING: Kunci agar rute API dikenali
+        }
+
+        location ~ \.php$ {
+            fastcgi_pass unix:/tmp/php-fpm.sock;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            include fastcgi_params;
+        }
+    }
+}

@@ -1,7 +1,6 @@
 // #### File: src/components/AppDrawer.vue
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/store/auth';
 

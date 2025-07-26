@@ -3,12 +3,23 @@
 import { defineStore } from 'pinia';
 import api from '@/services/api';
 
-// Perbarui interface agar sesuai dengan struktur DB baru
+// Interface untuk data formulir pengajuan oleh pengguna
+interface UserFormulaSubmission {
+  name: string;
+  reference: string;
+  formula_agb: string;
+  formula_bgb: string;
+  formula_carbon: string;
+  required_parameters: string[];
+  reference_file: File | null;
+}
+
+// Interface untuk data rumus yang ada (untuk admin)
 export interface AllometricEquation {
   id: number;
   name: string;
   reference: string;
-  equation_template: string | null; // Bisa jadi null sekarang
+  equation_template: string | null;
   formula_agb: string;
   formula_bgb: string;
   formula_carbon: string;
@@ -31,6 +42,43 @@ export const useFormulaStore = defineStore('formula', {
   }),
 
   actions: {
+    // --- ACTION BARU UNTUK PENGGUNA ---
+    async submitUserFormula(formData: UserFormulaSubmission) {
+      this.loading = true;
+      this.error = null;
+
+      const data = new FormData();
+      data.append('name', formData.name);
+      data.append('reference', formData.reference);
+      data.append('formula_agb', formData.formula_agb || '');
+      data.append('formula_bgb', formData.formula_bgb || '');
+      data.append('formula_carbon', formData.formula_carbon || '');
+      
+      formData.required_parameters.forEach((param: string) => {
+        data.append('required_parameters[]', param);
+      });
+      
+      if (formData.reference_file) {
+        data.append('reference_file', formData.reference_file);
+      }
+
+      try {
+        await api.post('/formulas/submit', data, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        alert('Pengajuan rumus berhasil dikirim!');
+        return true;
+      } catch (err: any) {
+        this.error = 'Gagal mengirim pengajuan. Pastikan semua data terisi.';
+        console.error(err);
+        alert(this.error);
+        return false;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // --- ACTIONS UNTUK ADMIN (Tidak Berubah) ---
     async fetchFormulas() {
       this.loading = true;
       this.error = null;
@@ -85,14 +133,11 @@ export const useFormulaStore = defineStore('formula', {
         }
       } catch (err: any) {
         console.error(err);
-        // --- LOGIKA ERROR HANDLING DIPERBAIKI DI SINI ---
         if (err.response?.data?.errors) {
             const errors = err.response.data.errors;
-            // Ambil pesan error validasi pertama dari Laravel
             throw new Error(Object.values(errors).flat().join('\n'));
         }
         throw new Error('Gagal memperbarui rumus.');
-        // ------------------------------------------------
       }
     },
 

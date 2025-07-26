@@ -39,10 +39,15 @@ return [
         ],
 
         'supabase' => [
-            'driver'   => 'supabase',
-            'key'      => env('SUPABASE_STORAGE_KEY'),
-            'bucket'   => env('SUPABASE_STORAGE_BUCKET'),
-            'endpoint' => env('SUPABASE_STORAGE_ENDPOINT'),
+            'driver' => 's3',
+            'key' => env('SUPABASE_KEY'),
+            'secret' => env('SUPABASE_SECRET'),
+            'region' => env('SUPABASE_REGION'),
+            'bucket' => env('SUPABASE_BUCKET'),
+            'url' => env('SUPABASE_URL'),
+            'endpoint' => env('SUPABASE_ENDPOINT'),
+            'use_path_style_endpoint' => false,
+            'throw' => false,
         ],
 
         'public' => [

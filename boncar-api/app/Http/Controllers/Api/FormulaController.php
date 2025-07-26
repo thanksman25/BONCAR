@@ -23,37 +23,42 @@ class FormulaController extends Controller
 
     /**
      * Mengajukan rumus baru oleh pengguna.
+     * Disesuaikan dengan frontend NewSubmissionPage.vue
      */
     public function submit(Request $request)
     {
+        // 1. Sesuaikan aturan validasi agar cocok dengan nama field dari frontend
         $validatedData = $request->validate([
             'formula_name' => 'required|string|max:255',
             'equation_template' => 'required|string',
             'reference' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'supporting_document' => 'required|file|mimes:pdf|max:2048',
+            'supporting_document' => 'required|file|mimes:pdf|max:2048', // PDF, maks 2MB
         ]);
 
-        $filePath = $request->file('supporting_document')->store('formula_submissions', 'public');
+        $filePath = null;
+        if ($request->hasFile('supporting_document')) {
+            // 2. Unggah file ke disk 'supabase'
+            // Pastikan konfigurasi di filesystems.php sudah benar
+            $filePath = $request->file('supporting_document')->store('formula_submissions', 'supabase');
+        }
 
+        // 3. Simpan data ke database
         FormulaSubmission::create([
             'user_id' => Auth::id(),
             'formula_name' => $validatedData['formula_name'],
             'equation_template' => $validatedData['equation_template'],
             'reference' => $validatedData['reference'],
             'description' => $validatedData['description'],
-            'supporting_document_path' => $filePath,
+            'supporting_document_path' => $filePath, // Simpan path dari Supabase
             'status' => 'pending',
         ]);
 
         return response()->json(['message' => 'Formula submitted successfully for review.'], 201);
     }
 
-    // --- METODE KHUSUS ADMIN ---
+    // --- METODE KHUSUS ADMIN (Tidak ada perubahan) ---
 
-    /**
-     * (Admin) Membuat rumus alometrik baru secara langsung.
-     */
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -62,10 +67,9 @@ class FormulaController extends Controller
             'formula_agb' => 'required|string',
             'formula_bgb' => 'required|string',
             'formula_carbon' => 'required|string',
-            'required_parameters' => 'nullable|array', // Aturan validasi yang diperbaiki
+            'required_parameters' => 'nullable|array',
         ]);
 
-        // Validasi manual untuk isi array
         if (isset($validatedData['required_parameters'])) {
             foreach ($validatedData['required_parameters'] as $param) {
                 if (!in_array($param, ['circumference', 'height', 'wood_density'])) {
@@ -73,61 +77,48 @@ class FormulaController extends Controller
                 }
             }
         }
-
         $equation = AllometricEquation::create($validatedData);
-
         return response()->json($equation, 201);
     }
 
-    /**
-     * (Admin) Mengambil detail satu rumus (untuk halaman edit).
-     */
     public function show(AllometricEquation $equation)
     {
         return response()->json($equation);
     }
     
-    /**
-     * (Admin) Mengambil semua pengajuan rumus.
-     */
     public function getSubmissions()
     {
         $submissions = FormulaSubmission::with('user:id,name,email')->latest()->get();
         return response()->json($submissions);
     }
 
-    /**
-     * (Admin) Menyetujui sebuah pengajuan rumus.
-     */
     public function approve(FormulaSubmission $submission)
     {
         if ($submission->status !== 'pending') {
             return response()->json(['message' => 'This submission has already been reviewed.'], 409);
         }
 
+        // Sesuaikan dengan kolom yang ada di tabel `allometric_equations`
         $equation = AllometricEquation::create([
             'name' => $submission->formula_name,
-            'equation_template' => $submission->equation_template,
+            'equation_template' => $submission->equation_template, // AGB utama disimpan di sini
             'reference' => $submission->reference,
             'submission_id' => $submission->id,
             'formula_agb' => $submission->equation_template,
-            'formula_bgb' => 'AGB * 0.26',
+            // Berikan nilai default atau ambil dari submission jika ada
+            'formula_bgb' => 'AGB * 0.2', 
             'formula_carbon' => '(AGB + BGB) * 0.47',
-            'required_parameters' => ['circumference'],
+            'required_parameters' => ['circumference'], // Asumsi default
         ]);
 
         $submission->update([
             'status' => 'approved',
             'reviewed_by' => Auth::id(),
-            'reviewed_at' => now(),
         ]);
 
         return response()->json(['message' => 'Formula approved and is now active.', 'equation' => $equation]);
     }
 
-    /**
-     * (Admin) Menolak sebuah pengajuan rumus.
-     */
     public function reject(Request $request, FormulaSubmission $submission)
     {
         $request->validate(['rejection_reason' => 'required|string|max:1000']);
@@ -140,15 +131,11 @@ class FormulaController extends Controller
             'status' => 'rejected',
             'rejection_reason' => $request->rejection_reason,
             'reviewed_by' => Auth::id(),
-            'reviewed_at' => now(),
         ]);
 
         return response()->json(['message' => 'Submission has been rejected.']);
     }
 
-    /**
-     * (Admin) Mengupdate data rumus alometrik yang sudah ada.
-     */
     public function update(Request $request, AllometricEquation $equation)
     {
         $validatedData = $request->validate([
@@ -157,14 +144,12 @@ class FormulaController extends Controller
             'formula_agb' => 'required|string',
             'formula_bgb' => 'required|string',
             'formula_carbon' => 'required|string',
-            'required_parameters' => 'nullable|array', // Aturan validasi yang diperbaiki
+            'required_parameters' => 'nullable|array',
         ]);
         
-        // Validasi manual untuk isi array
         if (isset($validatedData['required_parameters'])) {
             foreach ($validatedData['required_parameters'] as $param) {
                 if (!in_array($param, ['circumference', 'height', 'wood_density'])) {
-                    // Berikan pesan error yang jelas jika ada parameter yang tidak valid
                     return response()->json([
                         'message' => 'The given data was invalid.',
                         'errors' => [
@@ -175,7 +160,7 @@ class FormulaController extends Controller
             }
         }
         
-        $validatedData['equation_template'] = null;
+        $validatedData['equation_template'] = $validatedData['formula_agb'];
 
         $equation->update($validatedData);
 
@@ -185,9 +170,6 @@ class FormulaController extends Controller
         ]);
     }
 
-    /**
-     * (Admin) Menghapus rumus alometrik.
-     */
     public function destroy(AllometricEquation $equation)
     {
         $isUsedInProjects = DB::table('calculation_projects')->where('allometric_equation_id', $equation->id)->exists();

@@ -38,5 +38,10 @@ return [
     'mailtrap' => [
         'token' => env('MAILTRAP_API_KEY'),
     ],
+    'supabase' => [
+        'url' => env('SUPABASE_URL'),
+        'key' => env('SUPABASE_ANON_KEY'),
+        'bucket' => env('SUPABASE_BUCKET'),
+    ],
 
 ];

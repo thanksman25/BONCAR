@@ -8,14 +8,11 @@ use App\Models\FormulaSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; // Import Log
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use App\Services\SupabaseStorageService;
 
 class FormulaController extends Controller
 {
-    /**
-     * Mengambil semua rumus yang sudah disetujui (aktif).
-     */
     public function index()
     {
         $equations = AllometricEquation::orderBy('name', 'asc')->get();
@@ -26,39 +23,46 @@ class FormulaController extends Controller
      * Mengajukan rumus baru oleh pengguna.
      * Disesuaikan dengan frontend NewSubmissionPage.vue
      */
-    public function submit(Request $request)
+    public function submit(Request $request, SupabaseStorageService $supabase)
     {
-        // 1. Sesuaikan aturan validasi agar cocok dengan nama field dari frontend
         $validatedData = $request->validate([
             'formula_name' => 'required|string|max:255',
             'equation_template' => 'required|string',
             'reference' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'supporting_document' => 'required|file|mimes:pdf|max:5120', // PDF, maks 5MB
+            'supporting_document' => 'required|file|mimes:pdf|max:5120',
         ]);
 
         $filePath = null;
+
         if ($request->hasFile('supporting_document')) {
-            // 2. Unggah file ke disk 'supabase'
-            // Folder 'formula_submissions' akan dibuat otomatis di bucket Anda
-            $filePath = $request->file('supporting_document')->store('formula_submissions', 'supabase');
+            $file = $request->file('supporting_document');
+            $filename = uniqid() . '-' . $file->getClientOriginalName();
+            $storagePath = 'formula_submissions/' . $filename;
+
+            $uploadSuccess = $supabase->upload($storagePath, $file);
+
+            if ($uploadSuccess) {
+                $filePath = $supabase->getPublicUrl($storagePath);
+            } else {
+                return response()->json(['message' => 'Failed to upload file to storage.'], 500);
+            }
         }
 
-        // 3. Simpan data ke database
         FormulaSubmission::create([
             'user_id' => Auth::id(),
             'formula_name' => $validatedData['formula_name'],
             'equation_template' => $validatedData['equation_template'],
             'reference' => $validatedData['reference'],
             'description' => $validatedData['description'],
-            'supporting_document_path' => $filePath, // Simpan path dari Supabase
+            'supporting_document_path' => $filePath,
             'status' => 'pending',
         ]);
 
         return response()->json(['message' => 'Formula submitted successfully for review.'], 201);
     }
 
-    // --- METODE KHUSUS ADMIN (Tidak ada perubahan) ---
+    // --- METODE KHUSUS ADMIN (Tidak diubah) ---
 
     public function store(Request $request)
     {
@@ -78,6 +82,7 @@ class FormulaController extends Controller
                 }
             }
         }
+
         $equation = AllometricEquation::create($validatedData);
         return response()->json($equation, 201);
     }
@@ -86,7 +91,7 @@ class FormulaController extends Controller
     {
         return response()->json($equation);
     }
-    
+
     public function getSubmissions()
     {
         $submissions = FormulaSubmission::with('user:id,name,email')->latest()->get();
@@ -147,7 +152,7 @@ class FormulaController extends Controller
             'formula_carbon' => 'required|string',
             'required_parameters' => 'nullable|array',
         ]);
-        
+
         if (isset($validatedData['required_parameters'])) {
             foreach ($validatedData['required_parameters'] as $param) {
                 if (!in_array($param, ['circumference', 'height', 'wood_density'])) {
@@ -160,7 +165,7 @@ class FormulaController extends Controller
                 }
             }
         }
-        
+
         $validatedData['equation_template'] = $validatedData['formula_agb'];
 
         $equation->update($validatedData);

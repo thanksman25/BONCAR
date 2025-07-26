@@ -28,19 +28,16 @@ const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files[0]) {
     const file = target.files[0];
-    if (file.type === 'application/pdf' && file.size <= 2048 * 1024) {
+    // Validasi di sisi klien (PDF, maks 5MB)
+    if (file.type === 'application/pdf' && file.size <= 5120 * 1024) {
       selectedFile.value = file;
       fileName.value = file.name;
       errorMessage.value = '';
     } else {
-      target.value = '';
+      target.value = ''; // Reset input file
       selectedFile.value = null;
       fileName.value = '';
-      if (file.type !== 'application/pdf') {
-        errorMessage.value = 'Hanya file dengan format PDF yang diizinkan.';
-      } else if (file.size > 2048 * 1024) {
-        errorMessage.value = 'Ukuran file tidak boleh lebih dari 2MB.';
-      }
+      errorMessage.value = 'File harus berupa PDF dan tidak lebih dari 5MB.';
     }
   }
 };
@@ -48,14 +45,6 @@ const handleFileChange = (event: Event) => {
 const handleSubmit = async () => {
   errorMessage.value = '';
   successMessage.value = '';
-
-  // Validasi form
-  if (!formData.value.formula_name || 
-      !formData.value.equation_template || 
-      !formData.value.reference) {
-    errorMessage.value = 'Semua field wajib diisi kecuali deskripsi.';
-    return;
-  }
 
   if (!selectedFile.value) {
     errorMessage.value = 'Mohon unggah berkas pendukung.';
@@ -70,6 +59,7 @@ const handleSubmit = async () => {
     formDataObj.append('equation_template', formData.value.equation_template);
     formDataObj.append('reference', formData.value.reference);
     formDataObj.append('description', formData.value.description);
+    // Pastikan nama field di sini ("supporting_document") cocok dengan backend
     formDataObj.append('supporting_document', selectedFile.value);
 
     const response = await api.post('/formulas/submit', formDataObj, {
@@ -89,7 +79,6 @@ const handleSubmit = async () => {
     if (error.response?.data?.message) {
       errorMessage.value = error.response.data.message;
     } else if (error.response?.data?.errors) {
-      // Handle validation errors
       const errors = error.response.data.errors;
       const firstError = Object.values(errors)[0];
       errorMessage.value = Array.isArray(firstError) ? firstError[0] : 'Terjadi kesalahan validasi.';
@@ -137,7 +126,7 @@ const handleSubmit = async () => {
               id="formula" 
               type="text" 
               v-model="formData.equation_template" 
-              placeholder="e.g., 0.11 * DBH^2.5" 
+              placeholder="e.g., 0.11 * D**2.5" 
               required
             >
           </div>
@@ -163,7 +152,7 @@ const handleSubmit = async () => {
           </div>
           
           <div class="input-group">
-            <label>Upload Berkas Pendukung (PDF, maks 2MB)</label>
+            <label>Upload Berkas Pendukung (PDF, maks 5MB)</label>
             <label class="file-upload-label">
               <input 
                 type="file" 
@@ -218,7 +207,6 @@ const handleSubmit = async () => {
   padding: 32px; background-color: rgba(255, 255, 255, 0.98);
   border-radius: 20px;
 }
-
 .message {
   width: 100%;
   padding: 10px;
@@ -235,7 +223,6 @@ const handleSubmit = async () => {
   background-color: #ffdddd;
   color: #d8000c;
 }
-
 .input-group { 
   margin-bottom: 20px; 
 }
@@ -252,7 +239,6 @@ const handleSubmit = async () => {
 .input-group textarea {
   resize: vertical;
 }
-
 .file-upload-label {
   display: flex;
   align-items: center;
@@ -278,7 +264,6 @@ const handleSubmit = async () => {
   color: #555;
   font-size: 14px;
 }
-
 .submit-button {
   width: auto; padding: 12px 50px;
   margin: 16px auto 0 auto; display: block;
@@ -289,7 +274,6 @@ const handleSubmit = async () => {
   align-items: center;
   justify-content: center;
 }
-
 .spinner {
   border: 4px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
@@ -298,7 +282,6 @@ const handleSubmit = async () => {
   height: 24px;
   animation: spin 1s linear infinite;
 }
-
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }

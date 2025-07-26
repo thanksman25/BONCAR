@@ -8,7 +8,7 @@ use App\Models\FormulaSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Storage; // Pastikan ini di-import
 
 class FormulaController extends Controller
 {
@@ -33,7 +33,7 @@ class FormulaController extends Controller
             'equation_template' => 'required|string',
             'reference' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'supporting_document' => 'required|file|mimes:pdf|max:2048', // PDF, maks 2MB
+            'supporting_document' => 'required|file|mimes:pdf|max:5120', // PDF, maks 5MB
         ]);
 
         $filePath = null;
@@ -98,22 +98,21 @@ class FormulaController extends Controller
             return response()->json(['message' => 'This submission has already been reviewed.'], 409);
         }
 
-        // Sesuaikan dengan kolom yang ada di tabel `allometric_equations`
         $equation = AllometricEquation::create([
             'name' => $submission->formula_name,
-            'equation_template' => $submission->equation_template, // AGB utama disimpan di sini
+            'equation_template' => $submission->equation_template,
             'reference' => $submission->reference,
             'submission_id' => $submission->id,
             'formula_agb' => $submission->equation_template,
-            // Berikan nilai default atau ambil dari submission jika ada
-            'formula_bgb' => 'AGB * 0.2', 
+            'formula_bgb' => 'AGB * 0.26',
             'formula_carbon' => '(AGB + BGB) * 0.47',
-            'required_parameters' => ['circumference'], // Asumsi default
+            'required_parameters' => ['circumference'],
         ]);
 
         $submission->update([
             'status' => 'approved',
             'reviewed_by' => Auth::id(),
+            'reviewed_at' => now(),
         ]);
 
         return response()->json(['message' => 'Formula approved and is now active.', 'equation' => $equation]);
@@ -131,6 +130,7 @@ class FormulaController extends Controller
             'status' => 'rejected',
             'rejection_reason' => $request->rejection_reason,
             'reviewed_by' => Auth::id(),
+            'reviewed_at' => now(),
         ]);
 
         return response()->json(['message' => 'Submission has been rejected.']);

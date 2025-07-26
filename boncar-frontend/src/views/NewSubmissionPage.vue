@@ -28,13 +28,12 @@ const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files[0]) {
     const file = target.files[0];
-    // Validasi di sisi klien (PDF, maks 5MB)
     if (file.type === 'application/pdf' && file.size <= 5120 * 1024) {
       selectedFile.value = file;
       fileName.value = file.name;
       errorMessage.value = '';
     } else {
-      target.value = ''; // Reset input file
+      target.value = '';
       selectedFile.value = null;
       fileName.value = '';
       errorMessage.value = 'File harus berupa PDF dan tidak lebih dari 5MB.';
@@ -45,6 +44,13 @@ const handleFileChange = (event: Event) => {
 const handleSubmit = async () => {
   errorMessage.value = '';
   successMessage.value = '';
+
+  if (!formData.value.formula_name || 
+      !formData.value.equation_template || 
+      !formData.value.reference) {
+    errorMessage.value = 'Semua field wajib diisi kecuali deskripsi.';
+    return;
+  }
 
   if (!selectedFile.value) {
     errorMessage.value = 'Mohon unggah berkas pendukung.';
@@ -59,7 +65,6 @@ const handleSubmit = async () => {
     formDataObj.append('equation_template', formData.value.equation_template);
     formDataObj.append('reference', formData.value.reference);
     formDataObj.append('description', formData.value.description);
-    // Pastikan nama field di sini ("supporting_document") cocok dengan backend
     formDataObj.append('supporting_document', selectedFile.value);
 
     const response = await api.post('/formulas/submit', formDataObj, {

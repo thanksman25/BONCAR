@@ -8,7 +8,8 @@ use App\Models\FormulaSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage; // Pastikan ini di-import
+use Illuminate\Support\Facades\Log; // Import Log
+use Illuminate\Support\Facades\Storage;
 
 class FormulaController extends Controller
 {
@@ -39,7 +40,7 @@ class FormulaController extends Controller
         $filePath = null;
         if ($request->hasFile('supporting_document')) {
             // 2. Unggah file ke disk 'supabase'
-            // Pastikan konfigurasi di filesystems.php sudah benar
+            // Folder 'formula_submissions' akan dibuat otomatis di bucket Anda
             $filePath = $request->file('supporting_document')->store('formula_submissions', 'supabase');
         }
 

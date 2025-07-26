@@ -27,12 +27,6 @@ return [
     | Supported drivers: "local", "ftp", "sftp", "s3"
     |
     */
-    'supabase' => [
-        'driver'   => 'supabase',
-        'key'      => env('SUPABASE_STORAGE_KEY'),
-        'bucket'   => env('SUPABASE_STORAGE_BUCKET'),
-        'endpoint' => env('SUPABASE_STORAGE_ENDPOINT'),
-    ],
 
     'disks' => [
 
@@ -42,6 +36,13 @@ return [
             'serve' => true,
             'throw' => false,
             'report' => false,
+        ],
+
+        'supabase' => [
+            'driver'   => 'supabase',
+            'key'      => env('SUPABASE_STORAGE_KEY'),
+            'bucket'   => env('SUPABASE_STORAGE_BUCKET'),
+            'endpoint' => env('SUPABASE_STORAGE_ENDPOINT'),
         ],
 
         'public' => [
